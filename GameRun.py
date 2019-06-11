@@ -24,7 +24,9 @@ hasControl = True
 hookDropped = False
 goingUp = False
 goingDown = False
-fishSpawned = False
+gameStart = False
+gameOver = False
+firstEndLoop = True
 
 #Colors
 black = (0, 0, 0, 255)
@@ -34,6 +36,7 @@ green = (0, 255, 0, 255)
 gold = (255,215,0)
 
 #fishHitbox = (0, 0, 0, 0)
+cheatCounter = 0
 
 #PlayerMoveVars
 x = 300
@@ -41,9 +44,10 @@ y = 60
 vel = 10
 
 
-screenContent = {}
+screenContent = []
 toBeDrawn = {}
 fish = []
+enemies = []
 fishHitboxes = {}
 numbers = []
 timerTick = 0
@@ -123,6 +127,7 @@ class Number:
         self.y = y
         self.idx = idx
 
+
     def text_to_screen(self, screen=gameDisplay, size=40, color=(0, 0, 0, 255), font_type='freesansbold.ttf'):
 
         text = str(self.value)
@@ -130,22 +135,32 @@ class Number:
         text = font.render(text, True, color)
         screen.blit(text, (self.x, self.y))
 
+class Enemy:
+
+    def __init__(self, x, y, idx):
+        self.x = x
+        self.y = y
+        self.idx = idx
+        self.hitbox = Rectangle(self.x+13, self.y+20, 60, 40, idx)
+        self.picture = Image('piranha.png', [self.x, self.y])
+
+    def draw(self):
+        #screenContent[self.picture.image] = (self.picture.rect)
+        self.hitbox.draw()
+
+
 def screenRefresh():
-    screenContent.clear()
-    #global hookDropped
-    #global hasControl
     global left
     global right
-    #goingUp = False
-    #global Player
-    #global Background
-    #global Hook
     global hookHitbox
     global fishHitbox
     global score
     global timerTick
+    global gameOver
+    global firstEndLoop
 
 
+    screenContent.clear()
 
     if left:
         Player.image = player_flipped
@@ -161,23 +176,40 @@ def screenRefresh():
     queueDrawings()
 
 
+    #Enemy.draw()
 
-    for key, value in screenContent.items():
-        gameDisplay.blit(key, value)
+    for i in screenContent:
+        gameDisplay.blit(i.image, i.rect)
 
 
 
     score.text_to_screen()
-
     hookHitbox = Rectangle(Hook.rect.left+10, Hook.rect.top+10, 40, 30, "Hook")
-    hookHitbox.draw()
 
     for key, value in fishHitboxes.items():
-       key.draw()
+       if key.id == "Enemy1":
+           if key.x1 < 0:
+               value.rect.left = 1200
+               key.x1 = value.rect.left
+               key.x2 = key.x1 + key.w
+               key.y2 = key.y1 + key.h
+           value.rect.left -= 15
+           key.x1 -= 15
+           key.x2 = key.x1 + key.w
+           key.y2 = key.y1 + key.h
+       if key.id == "Enemy":
+           if key.x1 < 0:
+               value.rect.left = 1200
+               key.x1 = value.rect.left
+               key.x2 = key.x1 + key.w
+               key.y2 = key.y1 + key.h
+           value.rect.left -= 10
+           key.x1 -= 10
+           key.x2 = key.x1 + key.w
+           key.y2 = key.y1 + key.h
 
-    #text_to_screen(gameDisplay, 3, 45, 298, size=50, color=(0, 0, 0, 255))#, font_type='data/fonts/orecrusherexpand.ttf')
 
-    Heap.heapify_up()
+    #Heap.heapify_up()
 
     for i in Heap.heap_list:
         try:
@@ -192,9 +224,21 @@ def screenRefresh():
 
     timerTick += 1
     timer.text_to_screen()
-    if timerTick == 30:
+    if timer.value == 0:
+        gameOver = True
+    elif timerTick == 30:
         timer.value -= 1
         timerTick = 0
+
+    if gameOver:
+        gameDisplay.blit(gameEnd.image, gameEnd.rect)
+        score.x = 560
+        score.y = 400
+        score.text_to_screen()
+        pygame.display.update()
+        if firstEndLoop:
+            time.sleep(2)
+            firstEndLoop = False
 
     Heap.heapify_up()
 
@@ -204,12 +248,16 @@ def screenRefresh():
 
 def queueDrawings():
 
-    screenContent[Background.image] = (Background.rect)
-    screenContent[Player.image] = (Player.rect)
-    screenContent[Hook.image] = (Hook.rect)
+    screenContent.append(Background)
+    screenContent.append(Player)
+    screenContent.append(Hook)
+
 
     for i in fish:
-        screenContent[i.image] = (i.rect)
+        screenContent.append(i)
+
+    for i in enemies:
+        screenContent.append(i)
 
 
 
@@ -222,6 +270,7 @@ def raiseHook():
     if Hook.rect.top == y + 130:
         hasControl = True
         goingDown = False
+        goingUp = False
 
     else:
         Hook.rect.top -= 15
@@ -242,46 +291,62 @@ def dropHook():
 
 def collision(hitbox, image):
     global hasControl
+    global y
+    global cheatCounter
+    global scoreQueue
 
     idx = hitbox.id
-    number = Heap.heap_list[idx]
 
-    if hitbox.y1 <= y + 130:
+
+    if idx == None or type(idx) == str and goingUp:
+        return
+
+    elif type(idx) == str and not goingUp:
+        hasControl = False
+        if scoreQueue.size > 0:
+            scoreQueue.dequeue()
+            placeQueueNums()
+            return
+
+    elif hitbox.y1 <= y + 130:
+        number = Heap.heap_list[idx]
         resetHitboxPos(hitbox)
-        #resetNumbers(hitbox)
         captureNumber(number)
     else:
+        number = Heap.heap_list[idx]
         hasControl = False
         number.y -= 15
         hitbox.y1 -= 15
 
+
+
+
+
 def captureNumber(number):
     global score
-    x = number.x
-    y = number.y
+    global cheatCounter
+
+    print(number.idx)
+    if int(number.idx) <= 7:
+        cheatCounter = 0
+    elif int(number.idx) > 7:
+        cheatCounter += 1
+    if cheatCounter > 2:
+        return
+
+
     queueVar = Heap.prepDelete(number.idx)
     if scoreQueue.size == 4:
-       for i in range(scoreQueue.size):
+       for i in range(4):
            itemToAdd = scoreQueue.dequeue()
-           score.value += itemToAdd
-    if scoreQueue.size == 0:
-        queueVar.x = 830
-        queueVar.y = 10
-    if scoreQueue.size == 1:
-        queueVar.x = 890
-        queueVar.y = 10
-    if scoreQueue.size == 2:
-        queueVar.x = 950
-        queueVar.y = 10
-    if scoreQueue.size == 3:
-        queueVar.x = 1004
-        queueVar.y = 10
+           score.value += itemToAdd.value
 
-    #Heap.heap_list[1] = Number(0, x + 26, y + 18, 1)
-    #QueueAddition = Number(number.value, number.x, number.y, number.idx)
+
+
     scoreQueue.enqueue(queueVar)
-    #chance = random.randint(1, 3)
-    randomNum = 9
+
+    placeQueueNums()
+
     if Heap.heap_list[1].value < 10:
         randomNum = 15
     else:
@@ -289,77 +354,67 @@ def captureNumber(number):
 
 
     toAdd = Number(random.randint(1, randomNum), 1085, y + 18, 15)
-    #randomNum = 9
+
 
     Heap.add(toAdd)
 
+def placeQueueNums():
+
+    if scoreQueue.size == 0:
+        return
+
+    current = scoreQueue.head
+    currentNum = current.number
+    x = 830
+
+    if not current:
+        return
+    else:
+        for i in range(scoreQueue.size):
+            currentNum.x = x
+            currentNum.y = 10
+            x += 60
+            if current.get_next_node() and scoreQueue.size > 1:
+                current = current.get_next_node()
+                currentNum = current.number
 
 
-   # if scoreQueue.size == 1:
-        #queueVar.x = 830
-        #queueVar = 500
-    #if scoreQueue.size == 2:
-        #number.x = 880
-        #number.y = 10
-    #if scoreQueue.size == 3:
-        #number.x = 920
-       # number.y = 10
-   # if scoreQueue.size == 4:
-        #number.x = 970
-      #  number.y = 10
-    #if scoreQueue.size == 5:
-        #number.x = 1020
-        #number.y = 10
 
-    scoreQueue.print()
 
-    #Heap.heap_list[1] = Number(0, x + 26, y + 18, 1)
 
 def resetHitboxPos(hitbox):
 
-    if  hitbox.id == 1:
+
+    if type(hitbox.id) == str:
+        return
+    elif  hitbox.id == 1:
         hitbox.y1 = 565
         Heap.heap_list[hitbox.id].y = 565
-        hasControl = True
-    if hitbox.id >= 2 and hitbox.id <= 3:
+
+    elif hitbox.id >= 2 and hitbox.id <= 3:
        hitbox.y1 = 510
        Heap.heap_list[hitbox.id].y = 510
-       hasControl = True
-    if hitbox.id >= 4 and hitbox.id <= 7:
+
+    elif hitbox.id >= 4 and hitbox.id <= 7:
         hitbox.y1 = 390
         Heap.heap_list[hitbox.id].y = 390
-        hasControl = True
+
     elif hitbox.id > 7:
        hitbox.y1 = 270
        Heap.heap_list[hitbox.id].y = 270
-       hasControl = True
 
 
-       # hitbox.y1 = 270
-        #hasControl = True
-    #elif hitbox.id > 8 and hitbox.id <= 12:
-        #hitbox.y1 = 390
-        #hasControl = True
-   # elif hitbox.id > 12 and hitbox.id <= 14:
-       # hitbox.y1 = 510
-        #hasControl = True
-    #else:
-        #hitbox.y1 = 565
-        #hasControl = True
-
-
-
-def spawnFish():
+def spawnChests():
     x = 520
     y = 545
-    global fishSpawned
+    global gameStart
     global display_width
     global fishHitboxes
-    fishSpawned = True
+    gameStart = True
     idx = 1
-    #proc =
+
     for i in range(15, 16):
-        #fishNum = i
+
         hitboxName = ("fish" + str(i))
         HB = Rectangle(x + 13, 565, 50, 30, idx)
         pointsNum = Number(random.randint(10,20), x+14, y+18, idx)
@@ -372,7 +427,7 @@ def spawnFish():
     x = 220
     y = 490
     for i in range(13, 15):
-        # fishNum = i
+
         fishName = Image("chest.png", [x, y])
         HB = Rectangle(x + 13, 510, 50, 30, idx)
         pointsNum = Number(random.randint(6, 9), x + 20, y + 18, idx)
@@ -385,7 +440,7 @@ def spawnFish():
     x = 80
     y = 370
     for i in range(9, 13):
-        #fishNum = i
+
         fishName = Image("chest.png", [x, y])
         HB = Rectangle(x + 13, 390, 50, 30, idx)
         pointsNum = Number(random.randint(5,9), x+26, y+18, idx)
@@ -398,7 +453,7 @@ def spawnFish():
     x = 10
     y = 250
     for i in range(1,9):
-        #fishNum = i
+
         fishName = Image("chest.png", [x, y])
         HB = Rectangle(x+13, 270, 50, 30, idx)
         pointsNum = Number(random.randint(1,4), x+26, y+18, idx)
@@ -408,11 +463,55 @@ def spawnFish():
         x += (display_width/8)
         idx += 1
 
-    #Heap.print_heap()
+
+
+def spawnEnemies():
+
+    x = 100
+
+    for i in range(4):
+        i = Enemy(x, 298, "Enemy")
+        fishHitboxes[i.hitbox] = (i.picture)
+        enemies.append(i.picture)
+        x += 300
+    x = 200
+    for i in range(4):
+        i = Enemy(x, 420, "Enemy1")
+        fishHitboxes[i.hitbox] = (i.picture)
+        enemies.append(i.picture)
+        x += 300
+
+
+def gameRestart():
+    global gameOver
+    global score
+    global timer
+    global timerTick
+    global cheatCounter
+    global x
+    global y
+    global firstEndLoop
+
+    gameOver = False
+    firstEndLoop = False
+
+    x = 300
+    y = 60
+    score.value = 0
+    score.x = 30
+    score.y = 30
+    timer.value = 60
+    timerTick = 0
+    cheatCounter = 0
+
+    for i in range(scoreQueue.size):
+        scoreQueue.dequeue()
+
 
 #Images
 Background = Image('background.png', [0,0])
 Player = Image('player.png', [x, y])
+gameEnd = Image('gameoverscreen.png', [50, 50])
 
 Hook = Image('hook.png', [x+100, y+130])
 hookHitbox = Rectangle(Hook.rect.left - 3, Hook.rect.top, 40, 50, "Hook")
@@ -421,13 +520,21 @@ Fish = Image('chest.png', [500, 500])
 player = pygame.image.load('player.png')
 player_flipped = pygame.transform.flip(Player.image, True, False)
 
+
+
+
+
+
+
 score = Number(0, 30, 30, None)
 timer = Number(60, 1120, 10, None)
 
 while run:
     clock.tick(30)
-    if not fishSpawned:
-        spawnFish()
+    if not gameStart:
+        spawnChests()
+        spawnEnemies()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -443,21 +550,22 @@ while run:
             resetHitboxPos(key)
 
     keys = pygame.key.get_pressed()
-
-    if not hasControl:
-        raiseHook()
-    elif not keys[pygame.K_SPACE] and goingDown:
-        raiseHook()
-        hasControl = False
-    if hasControl == True:
-        if keys[pygame.K_LEFT] and x > -15:
-            x -= vel
-            left = True
-            right = False
-        elif keys[pygame.K_RIGHT] and x < 940:
-            x += vel
-            left = False
-            right = True
-        if keys[pygame.K_SPACE]:
-            dropHook()
+    if gameOver and keys[pygame.K_SPACE]:
+        gameRestart()
+    if not gameOver:
+        if not hasControl:
+            raiseHook()
+        elif not keys[pygame.K_SPACE] and goingDown:
+            raiseHook()
+        if hasControl == True:
+            if keys[pygame.K_LEFT] and x > -35:
+                x -= vel
+                left = True
+                right = False
+            elif keys[pygame.K_RIGHT] and x < 940:
+                x += vel
+                left = False
+                right = True
+            if keys[pygame.K_SPACE]:
+                dropHook()
     screenRefresh()

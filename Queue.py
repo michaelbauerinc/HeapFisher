@@ -16,6 +16,7 @@ class Node:
 
 class Queue:
     def __init__(self, max_size=None):
+        self.queue_list = []
         self.head = None
         self.tail = None
         self.max_size = max_size
@@ -31,8 +32,11 @@ class Queue:
                 self.tail.set_next_node(item_to_add)
                 self.tail = item_to_add
             self.size += 1
+            self.queue_list.append(value)
+            print(self.head.number.value)
+            print(self.tail.number.value)
         else:
-            print("Sorry, no more room!")
+            print("No room!")
 
     def dequeue(self):
         if self.get_size() > 0:
@@ -43,13 +47,13 @@ class Queue:
             else:
                 self.head = self.head.get_next_node()
             self.size -= 1
-            return item_to_remove.get_value()
+            return item_to_remove
         else:
-            print("The queue is totally empty!")
+            print("Queue is empty!")
 
     def peek(self):
         if self.size > 0:
-            return self.head.get_value()
+            return self.head
 
     def get_size(self):
         return self.size
@@ -69,16 +73,17 @@ class Queue:
         counter = 4
         current = self.head
         for i in range(printNum):
-            val = current.number.value
-            space = (", ")
-            current.number.value = current.number.value
-            current.number.text_to_screen()
-            if counter > 1:
-                current.number.value = ("    , ")
+            if current != None:
+                val = current.number.value
+                space = (", ")
+                current.number.value = current.number.value
                 current.number.text_to_screen()
-            current.number.value = val
-            current = current.next_node
-            counter -= 1
+                if counter > 1:
+                    current.number.value = ("    , ")
+                    current.number.text_to_screen()
+                current.number.value = val
+                current = current.next_node
+                counter -= 1
 
     def print(self):
         printNum = self.size
@@ -88,9 +93,3 @@ class Queue:
             lst.append(current.value)
             current = current.next_node
         print(lst)
-
-        #current = self.head
-        #while self.size > 0:
-            #print(current.value)
-            #current = current.get_next_node()
-
