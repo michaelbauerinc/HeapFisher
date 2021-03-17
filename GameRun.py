@@ -326,7 +326,6 @@ def captureNumber(number):
     global score
     global cheatCounter
 
-    print(number.idx)
     if int(number.idx) <= 7:
         cheatCounter = 0
     elif int(number.idx) > 7:

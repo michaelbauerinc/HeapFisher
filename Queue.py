@@ -33,10 +33,10 @@ class Queue:
                 self.tail = item_to_add
             self.size += 1
             self.queue_list.append(value)
-            print(self.head.number.value)
-            print(self.tail.number.value)
-        else:
-            print("No room!")
+            # print(self.head.number.value)
+            # print(self.tail.number.value)
+        # else:
+            # print("No room!")
 
     def dequeue(self):
         if self.get_size() > 0:
@@ -48,8 +48,8 @@ class Queue:
                 self.head = self.head.get_next_node()
             self.size -= 1
             return item_to_remove
-        else:
-            print("Queue is empty!")
+        # else:
+            # print("Queue is empty!")
 
     def peek(self):
         if self.size > 0:
@@ -92,4 +92,4 @@ class Queue:
         for i in range(printNum):
             lst.append(current.value)
             current = current.next_node
-        print(lst)
+        # print(lst)

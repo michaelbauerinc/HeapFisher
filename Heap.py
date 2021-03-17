@@ -19,10 +19,10 @@ class MaxHeap:
 
     def retrieve_max(self):
         if self.count == 0:
-            print("No items in heap")
+            # print("No items in heap")
             return None
 
-        print(self.heap_list)
+        # print(self.heap_list)
 
         max = self.heap_list[1]
         self.heap_list[1] = self.heap_list[self.count]
@@ -93,10 +93,10 @@ class MaxHeap:
             idx -= 1
 
         element_count = len(self.heap_list)
-        if element_count > 10000:
-            print("Heap of {0} elements restored with {1} swaps"
-                  .format(element_count, swap_count))
-            print("")
+        # if element_count > 10000:
+            # print("Heap of {0} elements restored with {1} swaps"
+                #   .format(element_count, swap_count))
+            # print("")
 
     def heapify_down(self):
         idx = 1
@@ -127,9 +127,9 @@ class MaxHeap:
         for i in self.heap_list:
             if i != None:
                 lst.append(i.value)
-        print(lst)
+        # print(lst)
         lst = []
         for i in self.heap_list:
             if i != None:
                 lst.append(i.idx)
-        print(lst)
+        # print(lst)
